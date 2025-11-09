@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Med-Help</title>
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--muted:#9aa4b2;--accent:#38bdf8;--glass:rgba(255,255,255,0.03)}
+    *{box-sizing:border-box}
+    body{font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin:0;background:linear-gradient(180deg,#071029 0%, #0f1724 100%);color:#e6eef6;min-height:100vh}
+    header{padding:18px 20px;display:flex;gap:12px;align-items:center;border-bottom:1px solid rgba(255,255,255,0.03)}
+    header h1{font-size:18px;margin:0}
+    .container{display:grid;grid-template-columns:320px 1fr 360px;gap:18px;padding:18px}
+    /* left sidebar */
+    .sidebar{background:var(--card);border-radius:12px;padding:14px;min-height:60vh}
+    .search{display:flex;gap:8px;margin-bottom:12px}
+    .search input{flex:1;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:var(--glass);color:inherit}
+    .filters label{display:block;font-size:13px;color:var(--muted);margin:6px 0}
+    .systems{display:flex;flex-wrap:wrap;gap:8px}
+    .chip{background:transparent;border:1px solid rgba(255,255,255,0.04);padding:6px 10px;border-radius:999px;font-size:13px;cursor:pointer}
+    .chip.active{background:var(--accent);color:#012; border-color:transparent}
+    .list{margin-top:12px;max-height:56vh;overflow:auto}
+    .d-item{padding:8px;border-radius:8px;margin-bottom:8px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));cursor:pointer}
+    .d-item small{color:var(--muted)}
+    /* center */
+    main{background:var(--card);border-radius:12px;padding:16px;min-height:60vh}
+    .detail-title{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+    .detail-title h2{margin:0 0 6px 0}
+    .meta{color:var(--muted);font-size:13px}
+    .section{margin-top:12px}
+    .section h3{margin:0 0 8px 0;font-size:15px}
+    .pill{display:inline-block;padding:6px 8px;border-radius:999px;border:1px solid rgba(255,255,255,0.04);font-size:13px;margin-right:6px}
+    /* right */
+    .right{background:var(--card);border-radius:12px;padding:14px;min-height:60vh}
+    .note{width:100%;min-height:120px;background:transparent;border:1px dashed rgba(255,255,255,0.03);padding:10px;border-radius:8px;color:inherit}
+    .btn{display:inline-block;padding:8px 12px;border-radius:8px;background:var(--accent);color:#012;font-weight:600;border:none;cursor:pointer}
+    .muted{color:var(--muted)}
+    .flashcard{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:14px;border-radius:10px;text-align:center}
+    .quiz qbox{display:block}
+    footer{padding:12px 20px;color:var(--muted);font-size:13px;border-top:1px solid rgba(255,255,255,0.02)}
+    @media (max-width:1000px){.container{grid-template-columns:1fr;}.right{order:3}.sidebar{order:2}}
+    /* small utility */
+    .flex{display:flex;gap:8px;align-items:center}
+    .small{font-size:13px}
+    .hidden{display:none}
+  </style>
+</head>
+<body>
+  <header>
+    <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36'><rect rx='8' ry='8' width='36' height='36' fill='%2338bdf8'/><text x='50%' y='55%' font-size='18' text-anchor='middle' fill='%23010a12' font-family='Arial'>MD</text></svg>" alt="logo" style="width:40px;height:40px;border-radius:8px">
+    <div>
+      <h1>Med-Help - Diseases Chart</h1>
+      <div class="muted">Search, bookmark, make notes & quiz yourself — offline-friendly</div>
+    </div>
+  </header>
+
+  <div class="container">
+    <aside class="sidebar" aria-label="Sidebar">
+      <div class="search">
+        <input id="searchInput" placeholder="Search disease, symptom, keyword..." aria-label="Search diseases">
+        <button class="btn" id="addBtn">Add</button>
+      </div>
+
+      <div class="filters">
+        <label>System</label>
+        <div class="systems" id="systems"></div>
+      </div>
+
+      <div class="list" id="diseaseList" role="list"></div>
+    </aside>
+
+    <main id="detail">
+      <div class="detail-title">
+        <div>
+          <h2 id="dTitle">Select a disease</h2>
+          <div class="meta" id="dMeta">Click any disease on the left to see details</div>
+        </div>
+        <div class="flex">
+          <button class="btn" id="flashBtn">Flashcard</button>
+          <button class="btn" id="quizBtn">Quick Quiz</button>
+          <button class="btn" id="bookmarkBtn">Bookmark</button>
+        </div>
+      </div>
+
+      <div class="section" id="dSummary"></div>
+      <div class="section" id="dSymptoms"></div>
+      <div class="section" id="dCauses"></div>
+      <div class="section" id="dDiagnosis"></div>
+      <div class="section" id="dTreatment"></div>
+
+      <div class="section hidden" id="flashcardArea">
+        <div class="flashcard" id="flashcardContent">
+          <div id="fcFront" style="font-weight:700;font-size:18px"></div>
+          <div id="fcBack" class="muted" style="margin-top:10px"></div>
+          <div style="margin-top:12px" class="flex"><button class="btn" id="flipBtn">Flip</button><button class="btn" id="closeFlash">Close</button></div>
+        </div>
+      </div>
+
+      <div class="section hidden" id="quizArea">
+        <div class="flashcard" id="quizContent">
+          <div id="qQuestion" style="font-weight:700;font-size:17px"></div>
+          <div id="qOptions" style="margin-top:12px"></div>
+          <div style="margin-top:12px" class="flex"><button class="btn" id="nextQ">Next</button><button class="btn" id="closeQuiz">Close</button></div>
+        </div>
+      </div>
+
+    </main>
+
+    <aside class="right">
+      <h3>Notes</h3>
+      <textarea id="noteBox" class="note" placeholder="Write notes for the selected disease..."></textarea>
+      <div style="margin-top:10px" class="flex"><button class="btn" id="saveNote">Save Note</button><button class="btn" id="exportBtn">Export Data</button></div>
+      
+      <div style="margin-top:18px">
+        <h3>Bookmarks</h3>
+        <div id="bookmarks"></div>
+      </div>
+
+      <div style="margin-top:18px">
+        <h3>Study Tools</h3>
+        <div class="small muted">Use Quick Quiz to generate simple multiple-choice questions from symptoms.</div>
+      </div>
+    </aside>
+  </div>
+
+  <footer>
+    This tool is for study and revision only — not medical advice. Data stored locally in your browser.
+  </footer>
+
+  <script>
+  // -- Sample disease data (start small; students can add more) --
+  const SAMPLE = [
+    {id: 'd1', name: 'Hypertension', system: 'Cardiovascular', summary: 'Chronic high blood pressure.', symptoms: ['Headache', 'Dizziness', 'Blurred vision'], causes: ['Genetic predisposition','High salt diet','Obesity'], diagnosis: ['Blood pressure measurement','Ambulatory BP monitoring'], treatment: ['Lifestyle modification','Antihypertensive drugs']},
+    {id: 'd2', name: 'Type 2 Diabetes Mellitus', system: 'Endocrine/Metabolic', summary: 'A metabolic disorder characterized by hyperglycemia due to insulin resistance.', symptoms: ['Polyuria','Polydipsia','Fatigue'], causes: ['Insulin resistance','Obesity','Genetics'], diagnosis: ['Fasting plasma glucose','HbA1c'], treatment: ['Lifestyle changes','Metformin','Insulin (advanced)']},
+    {id: 'd3', name: 'Pneumonia', system: 'Respiratory', summary: 'Infection of lung parenchyma causing consolidation and respiratory symptoms.', symptoms: ['Cough','Fever','Dyspnea'], causes: ['Bacterial infection','Viral infection','Aspiration'], diagnosis: ['Chest X-ray','Sputum culture'], treatment: ['Antibiotics','Supportive care']},
+    {id: 'd4', name: 'Tuberculosis', system: 'Respiratory', summary: 'Mycobacterium tuberculosis infection affecting lungs (and sometimes other organs).', symptoms: ['Chronic cough','Weight loss','Night sweats'], causes: ['Mycobacterium tuberculosis'], diagnosis: ['Sputum AFB smear','GeneXpert','Chest X-ray'], treatment: ['Combination anti-TB therapy (6 months)']},
+    {id: 'd5', name: 'Appendicitis', system: 'Gastrointestinal', summary: 'Acute inflammation of the appendix leading to abdominal pain.', symptoms: ['Right lower quadrant pain','Nausea','Fever'], causes: ['Obstruction of appendiceal lumen','Lymphoid hyperplasia'], diagnosis: ['Clinical exam','Ultrasound/CT'], treatment: ['Appendectomy','Antibiotics (peri-op)']}
+  ];
+
+  // state
+  let diseases = load('med_diseases') || SAMPLE.slice();
+  let notes = load('med_notes') || {};
+  let bookmarks = load('med_bookmarks') || [];
+  let selected = null;
+  let activeSystem = 'All';
+
+  // utilities
+  function save(key, val){localStorage.setItem(key, JSON.stringify(val))}
+  function load(key){try{return JSON.parse(localStorage.getItem(key))}catch(e){return null}}
+
+  // DOM refs
+  const listEl = document.getElementById('diseaseList');
+  const systemsEl = document.getElementById('systems');
+  const searchInput = document.getElementById('searchInput');
+  const dTitle = document.getElementById('dTitle');
+  const dMeta = document.getElementById('dMeta');
+  const dSummary = document.getElementById('dSummary');
+  const dSymptoms = document.getElementById('dSymptoms');
+  const dCauses = document.getElementById('dCauses');
+  const dDiagnosis = document.getElementById('dDiagnosis');
+  const dTreatment = document.getElementById('dTreatment');
+  const noteBox = document.getElementById('noteBox');
+  const bookmarksEl = document.getElementById('bookmarks');
+
+  // init
+  renderSystems();
+  renderList();
+  renderBookmarks();
+
+  // event listeners
+  searchInput.addEventListener('input', () => renderList());
+  document.getElementById('addBtn').addEventListener('click', addDiseaseForm);
+  document.getElementById('saveNote').addEventListener('click', saveNote);
+  document.getElementById('exportBtn').addEventListener('click', exportData);
+  document.getElementById('flashBtn').addEventListener('click', openFlashcard);
+  document.getElementById('quizBtn').addEventListener('click', startQuiz);
+  document.getElementById('bookmarkBtn').addEventListener('click', toggleBookmark);
+
+  function getSystems(){
+    const s = new Set(diseases.map(d=>d.system));
+    return ['All', ...Array.from(s).sort()];
+  }
+
+  function renderSystems(){
+    systemsEl.innerHTML='';
+    getSystems().forEach(sys => {
+      const btn = document.createElement('button');
+      btn.className='chip'+(sys===activeSystem? ' active':'');
+      btn.textContent=sys;
+      btn.addEventListener('click', ()=>{activeSystem=sys; renderSystems(); renderList();});
+      systemsEl.appendChild(btn);
+    });
+  }
+
+  function renderList(){
+    const q = (searchInput.value||'').toLowerCase().trim();
+    listEl.innerHTML='';
+    const filtered = diseases.filter(d => {
+      if(activeSystem!=='All' && d.system!==activeSystem) return false;
+      const hay = (d.name + ' ' + d.summary + ' ' + (d.symptoms||[]).join(' ')).toLowerCase();
+      return hay.includes(q);
+    }).sort((a,b)=>a.name.localeCompare(b.name));
+
+    if(filtered.length===0){listEl.innerHTML='<div class="muted">No diseases found — try adding one or change filters.</div>';return}
+
+    filtered.forEach(d=>{
+      const el = document.createElement('div'); el.className='d-item';
+      el.innerHTML = `<strong>${d.name}</strong><div class="small muted">${d.system}</div>`;
+      el.addEventListener('click', ()=>selectDisease(d.id));
+      listEl.appendChild(el);
+    });
+  }
+
+  function selectDisease(id){
+    selected = diseases.find(x=>x.id===id);
+    if(!selected) return;
+    dTitle.textContent = selected.name;
+    dMeta.textContent = selected.system;
+    dSummary.innerHTML = `<h3>Summary</h3><div>${escapeHtml(selected.summary||'—')}</div>`;
+    dSymptoms.innerHTML = `<h3>Symptoms</h3>${(selected.symptoms||[]).map(s=>`<span class="pill">${escapeHtml(s)}</span>`).join(' ')}`;
+    dCauses.innerHTML = `<h3>Causes</h3><ul>${(selected.causes||[]).map(c=>`<li>${escapeHtml(c)}</li>`).join('')}</ul>`;
+    dDiagnosis.innerHTML = `<h3>Diagnosis</h3><ul>${(selected.diagnosis||[]).map(c=>`<li>${escapeHtml(c)}</li>`).join('')}</ul>`;
+    dTreatment.innerHTML = `<h3>Treatment</h3><ul>${(selected.treatment||[]).map(c=>`<li>${escapeHtml(c)}</li>`).join('')}</ul>`;
+    noteBox.value = notes[selected.id] || '';
+    updateBookmarkButton();
+  }
+
+  function updateBookmarkButton(){
+    const b = document.getElementById('bookmarkBtn');
+    if(!selected) return; b.textContent = bookmarks.includes(selected.id)? 'Bookmarked' : 'Bookmark';
+  }
+
+  function saveNote(){
+    if(!selected) return alert('Choose a disease first');
+    notes[selected.id] = noteBox.value;
+    save('med_notes', notes);
+    alert('Note saved locally');
+  }
+
+  function renderBookmarks(){
+    bookmarksEl.innerHTML='';
+    if(bookmarks.length===0){bookmarksEl.innerHTML='<div class="muted">No bookmarks yet</div>';return}
+    bookmarks.forEach(id=>{
+      const d = diseases.find(x=>x.id===id);
+      if(!d) return;
+      const el = document.createElement('div'); el.className='d-item';
+      el.innerHTML = `<strong>${d.name}</strong><div class="small muted">${d.system}</div>`;
+      el.addEventListener('click', ()=>selectDisease(d.id));
+      bookmarksEl.appendChild(el);
+    });
+  }
+
+  function toggleBookmark(){
+    if(!selected) return alert('Select a disease to bookmark');
+    const idx = bookmarks.indexOf(selected.id);
+    if(idx===-1) bookmarks.push(selected.id); else bookmarks.splice(idx,1);
+    save('med_bookmarks', bookmarks);
+    renderBookmarks(); updateBookmarkButton();
+  }
+
+function addDiseaseForm(){
+  const name = prompt('Disease name'); 
+  if(!name) return;
+
+  const system = prompt('System (e.g. Respiratory)') || 'General';
+  const summary = prompt('Short summary') || '';
+  const symptoms = (prompt('Comma-separated symptoms (e.g. fever,cough)') || '')
+                      .split(',').map(s=>s.trim()).filter(Boolean);
+  const causes = (prompt('Comma-separated causes') || '')
+                      .split(',').map(s=>s.trim()).filter(Boolean);
+  const diagnosis = (prompt('Comma-separated diagnosis methods') || '')
+                      .split(',').map(s=>s.trim()).filter(Boolean);
+  const treatment = (prompt('Comma-separated treatments') || '')
+                      .split(',').map(s=>s.trim()).filter(Boolean);
+
+  const id = 'd' + Date.now();
+  const obj = {id,name,system,summary,symptoms,causes,diagnosis,treatment};
+
+  diseases.push(obj);
+  save('med_diseases', diseases);
+  renderSystems();
+  renderList();
+  alert('Disease added locally');
+}
+
+  // Flashcards
+  function openFlashcard(){
+    if(!selected) return alert('Select a disease first');
+    document.getElementById('flashcardArea').classList.remove('hidden');
+    document.getElementById('fcFront').textContent = selected.name;
+    document.getElementById('fcBack').textContent = 'Summary: ' + (selected.summary || '—') + '\nSymptoms: ' + (selected.symptoms||[]).slice(0,5).join(', ');
+  }
+  document.getElementById('flipBtn').addEventListener('click', ()=>{
+    const back = document.getElementById('fcBack'); back.style.display = back.style.display === 'block' ? 'none' : 'block';
+  });
+  document.getElementById('closeFlash').addEventListener('click', ()=>document.getElementById('flashcardArea').classList.add('hidden'));
+
+  // Quick quiz generator (simple MCQs from symptoms)
+  let quizQuestions = []; let currentQ = 0;
+  function startQuiz(){
+    if(!selected) return alert('Select a disease first');
+    // generate up to 5 questions from symptoms vs distractors
+    const correct = selected.symptoms || [];
+    if(correct.length===0) return alert('No symptoms listed to generate quiz');
+    const allSymptoms = Array.from(new Set(diseases.flatMap(d=>d.symptoms||[])));
+    quizQuestions = correct.slice(0,5).map(sym => {
+      const options = [sym];
+      while(options.length<4){
+        const pick = allSymptoms[Math.floor(Math.random()*allSymptoms.length)];
+        if(!options.includes(pick)) options.push(pick);
+      }
+      return {q: `Which of the following is a symptom of ${selected.name}?`, answer: sym, options: shuffle(options)};
+    });
+    currentQ = 0; document.getElementById('quizArea').classList.remove('hidden'); renderQuestion();
+  }
+  function renderQuestion(){
+    const q = quizQuestions[currentQ]; document.getElementById('qQuestion').textContent = q.q;
+    const ops = document.getElementById('qOptions'); ops.innerHTML='';
+    q.options.forEach(opt=>{
+      const b = document.createElement('button'); b.className='chip'; b.textContent = opt; b.style.margin='6px';
+      b.addEventListener('click', ()=>{
+        if(opt===q.answer){alert('Correct!')}else{alert('Incorrect — correct: '+q.answer)}
+      });
+      ops.appendChild(b);
+    });
+  }
+  document.getElementById('nextQ').addEventListener('click', ()=>{
+    currentQ++; if(currentQ>=quizQuestions.length){currentQ=0; alert('Quiz finished')}
+    renderQuestion();
+  });
+  document.getElementById('closeQuiz').addEventListener('click', ()=>document.getElementById('quizArea').classList.add('hidden'));
+
+  // Export
+  function exportData(){
+    const payload = {diseases,notes,bookmarks};
+    const blob = new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'medstudy-export.json'; a.click(); URL.revokeObjectURL(url);
+  }
+
+  // small helpers
+  function escapeHtml(s){if(!s) return ''; return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+  function shuffle(a){return a.sort(()=>Math.random()-0.5)}
+
+  // render bookmarks initially
+  renderBookmarks();
+
+  // auto-select first if none
+  if(diseases.length>0 && !selected){selectDisease(diseases[0].id)}
+
+  // accessibility: keyboard shortcut / quick search: press "/" to focus search
+  document.addEventListener('keydown', e=>{ if(e.key==='/' && document.activeElement!==searchInput){ e.preventDefault(); searchInput.focus(); }});
+
+  </script>
+</body>
+</html>
